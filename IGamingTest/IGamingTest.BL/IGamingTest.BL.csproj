@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\IGamingTest.Contracts\IGamingTest.Contracts.csproj" />
-    <ProjectReference Include="..\IGamingTest.Infrastructure\IGamingTest.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

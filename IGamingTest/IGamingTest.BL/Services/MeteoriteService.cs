@@ -1,22 +1,22 @@
-﻿using IGamingTest.Contracts.Queries;
+﻿using IGamingTest.Core.Entities.Common;
 using IGamingTest.Core.Entities.Meteorite;
+using IGamingTest.Core.Helpers;
+using IGamingTest.Core.Http.Out;
+using IGamingTest.Core.Http.Out.Models;
 using IGamingTest.Core.Models;
 using IGamingTest.Infrastructure.Ef.Repositories.Interfaces;
-using System.Linq.Expressions;
-using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace IGamingTest.BL.Services;
 
 public interface IMeteoriteService
 {
     Task SyncMeteoritesFromExternalSourceAsync(CancellationToken ct);
-    Task<IReadOnlyCollection<MeteoriteGroupedDto>> GetFilteredGroupedMeteoritesAsync(
-        MeteoriteFilterQuery rq,
-        CancellationToken ct);
 }
 
 public class MeteoriteService(
-    HttpClient httpClient,
+    IHttpSender httpSender,
+    ILogger<MeteoriteService> logger,
     IUow uow
     ) : IMeteoriteService
 {
@@ -24,119 +24,55 @@ public class MeteoriteService(
     {
         var incomingDtos = await GetMeteoritesAsync(ct);
 
-        var incomingIds = incomingDtos.Select(dto => dto.Id).ToList();
-        var incomingById = incomingDtos.ToDictionary(dto => dto.Id);
+        var incomingIds = incomingDtos.Select(dto => dto.IdValue).ToList();
+        var incomingById = incomingDtos.ToDictionary(dto => dto.IdValue);
 
-        //await UpdateModifiedMeteoritesAsync(
-        //    incomingIds,
-        //    incomingById,
-        //    incomingDtos,
-        //    ct);
+        await UpdateModifiedMeteoritesAsync(
+            incomingIds,
+            incomingById,
+            incomingDtos,
+            ct);
 
-        //await uow.MeteoriteRepository.DeleteWhereAsync(
-        //    predicate: x => !incomingIds.Contains(x.Id),
-        //    ct: ct);
-
-        //var entities = MapDtosToEntities(incomingDtos);
-
-        //await uow.MeteoriteRepository.CreateIfNotExistAsync(
-        //    entities,
-        //    entity => x => x.Id == entity.Id,
-        //    ct);
-    }
-
-    public async Task<IReadOnlyCollection<MeteoriteGroupedDto>> GetFilteredGroupedMeteoritesAsync(
-        MeteoriteFilterQuery rq,
-        CancellationToken ct)
-    {
-        var filter = BuildFilterExpression(rq);
-        var sorter = BuildGroupedSorter(rq.SortBy);
-
-        var grouped = await uow.MeteoriteRepository.GetAllGroupedAsync(
-            groupSelector: g => new MeteoriteGroupedDto
-            {
-                Year = g.Key,
-                Count = g.Count(),
-                TotalMass = g.Sum(x => x.Mass)
-            },
-            groupBy: e => e.Year,
-            amount: rq.Amount,
-            offset: rq.Offset,
-            predicate: filter,
+        await uow.MeteoriteRepository.DeleteWhereAsync(
+            predicate: x => !incomingIds.Contains(x.Id),
             ct: ct);
 
-        var sorted = BuildGroupedSorter(rq.SortBy)(grouped);
+        var entities = MapDtosToEntities(incomingDtos);
 
-        return sorted.ToList();
+        await uow.MeteoriteRepository.CreateIfNotExistAsync(
+            entities,
+            entity => x => x.Id == entity.Id,
+            ct);
     }
 
-    private Expression<Func<MeteoriteEntity, bool>> BuildFilterExpression(MeteoriteFilterQuery rq)
-    {
-        return e =>
-            (!rq.YearFrom.HasValue || e.Year >= rq.YearFrom.Value) &&
-            (!rq.YearTo.HasValue || e.Year <= rq.YearTo.Value) &&
-            (string.IsNullOrEmpty(rq.RecClass) || e.RecClass == rq.RecClass) &&
-            (string.IsNullOrEmpty(rq.NameContains) || e.Name.Contains(rq.NameContains));
-    }
-
-
-
-    private Func<IEnumerable<MeteoriteGroupedDto>, IOrderedEnumerable<MeteoriteGroupedDto>> BuildGroupedSorter(string? sortBy)
-    {
-        var desc = sortBy?.EndsWith("desc", StringComparison.OrdinalIgnoreCase) ?? false;
-        var prop = sortBy?.Split(' ')[0].ToLower();
-
-        return q => prop switch
-        {
-            "count" => desc ? q.OrderByDescending(x => x.Count) : q.OrderBy(x => x.Count),
-            "mass" => desc ? q.OrderByDescending(x => x.TotalMass) : q.OrderBy(x => x.TotalMass),
-            "year" or _ => desc ? q.OrderByDescending(x => x.Year) : q.OrderBy(x => x.Year)
-        };
-    }
-
-    public async Task<IReadOnlyCollection<MeteoriteDto>> GetMeteoritesAsync(CancellationToken ct)
+    public async Task<IReadOnlyCollection<GetMeteoriteQueryRs>> GetMeteoritesAsync(CancellationToken ct)
     {
         try
         {
-            var response = await httpClient.GetAsync("https://raw.githubusercontent.com/biggiko/nasa-dataset/refs/heads/main/y77d-th95.json", ct);
+            var method = HttpMethod.Get;
+            var uri = new Uri($"https://raw.githubusercontent.com/biggiko/nasa-dataset/refs/heads/main/y77d-th95.json");
 
-            if (response == null || !response.IsSuccessStatusCode)
-                throw new HttpRequestException("Invalid HTTP response from external service.");
+            var rq = new HttpRq(
+            Uri: uri,
+            Method: method);
 
-            if (response.Content == null)
-                throw new InvalidOperationException("Response content is null.");
+            var meteorites = await httpSender.ForceSendAsync<IReadOnlyCollection<GetMeteoriteQueryRs>>(
+                rq: rq,
+                ct: ct);
 
-            var contentType = response.Content.Headers.ContentType?.MediaType;
-            if (!string.Equals(contentType, "text/plain", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException($"Unexpected content type: {contentType}");
-
-            var json = await response.Content.ReadAsStringAsync(ct);
-
-            if (string.IsNullOrWhiteSpace(json))
-                throw new InvalidOperationException("Received empty JSON.");
-
-            var dtos = JsonSerializer.Deserialize<IReadOnlyCollection<MeteoriteDto>>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            return dtos ?? Array.Empty<MeteoriteDto>();
+            return meteorites;
         }
-        catch (OperationCanceledException)
+        catch (Exception)
         {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            // logger.LogError(ex, "Failed to fetch meteorites from remote service");
-            throw new ApplicationException("Error occurred while fetching meteorites.", ex);
+            logger.LogWarning($"Error occurred while fetching meteorites.");
+            return Array.Empty<GetMeteoriteQueryRs>();
         }
     }
 
     private async Task UpdateModifiedMeteoritesAsync(
-        IReadOnlyCollection<Guid> incomingIds,
-        IDictionary<Guid, MeteoriteDto> incomingById,
-        IReadOnlyCollection<MeteoriteDto> incomingDtos,
+        IReadOnlyCollection<int> incomingIds,
+        IDictionary<int, GetMeteoriteQueryRs> incomingById,
+        IReadOnlyCollection<GetMeteoriteQueryRs> incomingDtos,
         CancellationToken ct)
     {
         var changedMeteorites = await GetMeteoritesToChangeAsync(
@@ -146,22 +82,22 @@ public class MeteoriteService(
     }
 
     private async Task UpdateMeteoritesAsync(
-        IDictionary<Guid, MeteoriteDto> incomingById,
+        IDictionary<int, GetMeteoriteQueryRs> incomingById,
         IReadOnlyCollection<MeteoriteEntity> entitiesToUpdate,
         CancellationToken ct)
     {
         foreach (var entity in entitiesToUpdate)
         {
-            //if (incomingById.TryGetValue(entity.Id, out var dto))
-            //{
-            //    await UpdateEntityIfChangedAsync(entity, dto, ct);
-            //}
+            if (incomingById.TryGetValue(entity.Id, out var dto))
+            {
+                await UpdateEntityIfChangedAsync(entity, dto, ct);
+            }
         }
     }
 
     private async Task UpdateEntityIfChangedAsync(
         MeteoriteEntity entity,
-        MeteoriteDto dto,
+        GetMeteoriteQueryRs dto,
         CancellationToken ct)
     {
         if (entity.NameType != dto.NameType)
@@ -206,85 +142,147 @@ public class MeteoriteService(
             await uow.MeteoriteRepository.UpdateAsync(entity, e => e.RecLong, ct);
         }
 
-        if (entity.Geolocation.Type != dto.Geolocation.Type)
-        {
-            entity.Geolocation.Type = dto.Geolocation.Type;
-            await uow.MeteoriteRepository.UpdateAsync(entity, e => e.Geolocation.Type, ct);
-        }
-
-        //if (entity.Geolocation.Geo.Latitude != dto.Geolocation.Coordinates.Latitude)
-        //{
-        //    entity.Geolocation.Geo.Latitude = dto.Geolocation.Coordinates.Latitude;
-        //    await uow.MeteoriteRepository.UpdateAsync(entity, e => e.Geolocation.Geo.Latitude, ct);
-        //}
-
-        //if (entity.Geolocation.Geo.Longitude != dto.Geolocation.Coordinates.Longitude)
-        //{
-        //    entity.Geolocation.Geo.Longitude = dto.Geolocation.Coordinates.Longitude;
-        //    await uow.MeteoriteRepository.UpdateAsync(entity, e => e.Geolocation.Geo.Longitude, ct);
-        //}
+        await UpdateGeolocationIfChangedAsync(entity, dto, uow, ct);
 
         await uow.CommitAsync(ct);
     }
 
-    private async Task<IList<MeteoriteEntity>> GetMeteoritesToChangeAsync(
-        IReadOnlyCollection<Guid> meteoriteIds,
-        IDictionary<Guid, MeteoriteDto> meteoritesById,
-        IReadOnlyCollection<MeteoriteDto> dtos,
+    private async Task UpdateGeolocationIfChangedAsync(
+        MeteoriteEntity entity,
+        GetMeteoriteQueryRs dto,
+        IUow uow,
         CancellationToken ct)
     {
-        var entities = await uow.MeteoriteRepository.GetAllAsync(
-            selector: x => new MeteoriteEntity
-            {
-                Id = x.Id,
-                NameType = x.NameType,
-                RecClass = x.RecClass,
-                Mass = x.Mass,
-                Fall = x.Fall,
-                Year = x.Year,
-                RecLat = x.RecLat,
-                RecLong = x.RecLong,
-                Geolocation = x.Geolocation,
-            },
-            //predicate: x =>
-            //    meteoriteIds.Contains(x.Id) &&
-            //    (
-            //        x.NameType != meteoritesById[x.Id].NameType ||
-            //        x.RecClass != meteoritesById[x.Id].RecClass ||
-            //        x.Mass != meteoritesById[x.Id].MassValue ||
-            //        x.Fall != meteoritesById[x.Id].Fall ||
-            //        x.Year != meteoritesById[x.Id].YearValue ||
-            //        x.RecLat != meteoritesById[x.Id].RecLat ||
-            //        x.RecLong != meteoritesById[x.Id].RecLong ||
-            //        x.Geolocation.Geo.Latitude != meteoritesById[x.Id].Geolocation.Coordinates.Latitude ||
-            //        x.Geolocation.Geo.Longitude != meteoritesById[x.Id].Geolocation.Coordinates.Longitude
-            //    ),
-            ct: ct
-        );
+        var entityGeoLoc = entity.Geolocation;
+        var dtoGeoLoc = dto.Geolocation;
 
-        return entities;
+        if (entityGeoLoc == null || dtoGeoLoc == null)
+            return;
+
+        if (entityGeoLoc.Type != dtoGeoLoc.Type)
+        {
+            entityGeoLoc.Type = dtoGeoLoc.Type;
+            await uow.MeteoriteRepository.UpdateAsync(entity, e => e.Geolocation!.Type, ct);
+        }
+
+        var entityGeo = entityGeoLoc.Geo;
+        var dtoGeo = dtoGeoLoc.Geo;
+
+        if (entityGeo == null || dtoGeo == null)
+            return;
+
+        if (entityGeo.Latitude != dtoGeo.Latitude)
+        {
+            entityGeo.Latitude = dtoGeo.Latitude;
+            await uow.MeteoriteRepository.UpdateAsync(entity, e => e.Geolocation!.Geo!.Latitude, ct);
+        }
+
+        if (entityGeo.Longitude != dtoGeo.Longitude)
+        {
+            entityGeo.Longitude = dtoGeo.Longitude;
+            await uow.MeteoriteRepository.UpdateAsync(entity, e => e.Geolocation!.Geo!.Longitude, ct);
+        }
     }
 
-    //private List<MeteoriteEntity> MapDtosToEntities(IReadOnlyCollection<MeteoriteDto> dtos)
-    //{
-    //    return dtos.Select(dto => new MeteoriteEntity
-    //    {
-    //        Id = dto.Id,
-    //        Name = dto.Name,
-    //        NameType = dto.NameType,
-    //        RecClass = dto.RecClass,
-    //        Mass = dto.MassValue,
-    //        Fall = dto.Fall,
-    //        Year = dto.YearValue,
-    //        RecLat = dto.RecLat,
-    //        RecLong = dto.RecLong,
 
-    //        Geolocation = new GeoLocationEntity
-    //        {
-    //            Id = Guid.NewGuid(),
-    //            Type = dto.Geolocation.Type,
-    //            Geo = dto.Geolocation.Coordinates
-    //        }
-    //    }).ToList();
-    //}
+    private async Task<IList<MeteoriteEntity>> GetMeteoritesToChangeAsync(
+        IReadOnlyCollection<int> meteoriteIds,
+        IDictionary<int, GetMeteoriteQueryRs> meteoritesById,
+        IReadOnlyCollection<GetMeteoriteQueryRs> dtos,
+        CancellationToken ct)
+    {
+        const int batchSize = 20;
+        var result = new List<MeteoriteEntity>();
+
+        var allDtos = meteoritesById.Values.ToList();
+
+        for (int i = 0; i < allDtos.Count; i += batchSize)
+        {
+            var batchDtos = allDtos.Skip(i).Take(batchSize).ToList();
+
+            var predicate = PredicateBuilder.False<MeteoriteEntity>();
+
+            foreach (var dto in batchDtos)
+            {
+                var id = dto.IdValue;
+                var nameType = dto.NameType;
+                var recClass = dto.RecClass;
+                var mass = dto.MassValue;
+                var fall = dto.Fall;
+                var year = dto.YearValue;
+                var recLat = dto.RecLat;
+                var recLong = dto.RecLong;
+
+                var geoLat = dto.Geolocation?.Geo?.Latitude;
+                var geoLong = dto.Geolocation?.Geo?.Longitude;
+
+                predicate = predicate.Or(x =>
+                    x.Id == id &&
+                    (
+                        x.NameType != nameType ||
+                        x.RecClass != recClass ||
+                        x.Mass != mass ||
+                        x.Fall != fall ||
+                        x.Year != year ||
+                        x.RecLat != recLat ||
+                        x.RecLong != recLong ||
+                        (x.Geolocation != null &&
+                         x.Geolocation.Geo != null &&
+                         (
+                             x.Geolocation.Geo.Latitude != geoLat ||
+                             x.Geolocation.Geo.Longitude != geoLong
+                         ))
+                    )
+                );
+            }
+
+            var batchEntities = await uow.MeteoriteRepository.GetAllAsync(
+                selector: x => new MeteoriteEntity
+                {
+                    Id = x.Id,
+                    NameType = x.NameType,
+                    RecClass = x.RecClass,
+                    Mass = x.Mass,
+                    Fall = x.Fall,
+                    Year = x.Year,
+                    RecLat = x.RecLat,
+                    RecLong = x.RecLong,
+                    Geolocation = x.Geolocation,
+                },
+                predicate: predicate,
+                ct: ct
+            );
+
+            result.AddRange(batchEntities);
+        }
+
+        return result;
+    }
+
+
+    private List<MeteoriteEntity> MapDtosToEntities(IReadOnlyCollection<GetMeteoriteQueryRs> dtos)
+    {
+        return dtos.Select(dto => new MeteoriteEntity
+        {
+            Id = dto.IdValue,
+            Name = dto.Name,
+            NameType = dto.NameType,
+            RecClass = dto.RecClass,
+            Mass = dto.MassValue,
+            Fall = dto.Fall,
+            Year = dto.YearValue,
+            RecLat = dto.RecLat,
+            RecLong = dto.RecLong,
+
+            Geolocation = dto.Geolocation == null ? null : new GeoLocationEntity
+            {
+                Type = dto.Geolocation.Type,
+                Geo = dto.Geolocation.Geo == null ? null : new Geo
+                {
+                    Longitude = dto.Geolocation.Geo.Longitude,
+                    Latitude = dto.Geolocation.Geo.Latitude
+                }
+            }
+        }).ToList();
+    }
 }

@@ -1,5 +1,6 @@
 ﻿using IGamingTest.BL;
 using IGamingTest.Core.Enums;
+using IGamingTest.Core.Serializers;
 using IGamingTest.Core.Startups;
 using IGamingTest.Infrastructure;
 using IGamingTest.Web.Mappers;
@@ -16,8 +17,8 @@ internal sealed class Startup : ServiceStartup
         WebApplicationBuilder builder)
     {
         services.AddWebMappers();
-        services.AddStartupInfrastructure(builder.Configuration);
-        services.AddStartupIGamingTestBlServices();
+        services.AddBlServices();
+        services.AddBatchSerializers();
 
         builder.Services.AddHttpClient();
 

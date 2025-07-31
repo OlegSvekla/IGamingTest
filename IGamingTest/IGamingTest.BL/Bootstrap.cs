@@ -5,7 +5,7 @@ namespace IGamingTest.BL;
 
 public static class Bootstrap
 {
-    public static void AddStartupIGamingTestBlServices(this IServiceCollection services)
+    public static void AddBlServices(this IServiceCollection services)
     {
         services.AddScoped<IMeteoriteService, MeteoriteService>();
     }

@@ -4,7 +4,7 @@ using IGamingTest.Core.Enums;
 
 namespace IGamingTest.Web.Rqs;
 
-public class MeteoriteFilterRq
+public class GetMeteoriteFilterRq
 {
     public int? YearFrom { get; set; }
     public int? YearTo { get; set; }
@@ -16,18 +16,21 @@ public class MeteoriteFilterRq
 
     [property: FromEnum(typeof(SortByMeteoriteEnum))]
     public string? SortBy { get; set; }
+
+    [property: FromEnum(typeof(SortDirectionEnum))]
+    public string? SortDirection { get; set; }
 }
 
-public class MeteoriteFilterRqValidator : AbstractValidator<MeteoriteFilterRq>
+public class MeteoriteFilterRqValidator : AbstractValidator<GetMeteoriteFilterRq>
 {
     public MeteoriteFilterRqValidator()
     {
         RuleFor(x => x.Amount)
-            .InclusiveBetween(Core.Models.Consts.MinAmount, Core.Models.Consts.MaxAmount)
+            .InclusiveBetween(Infrastructure.Consts.MinAmount, Infrastructure.Consts.MaxAmount)
             .When(x => x.Amount.HasValue);
 
         RuleFor(x => x.Offset)
-            .InclusiveBetween(Core.Models.Consts.MinOffset, Core.Models.Consts.MaxOffset)
+            .InclusiveBetween(Infrastructure.Consts.MinOffset, Infrastructure.Consts.MaxOffset)
             .When(x => x.Offset.HasValue);
 
         RuleFor(x => x.YearTo)
@@ -41,7 +44,21 @@ public class MeteoriteFilterRqValidator : AbstractValidator<MeteoriteFilterRq>
             .When(x => x.YearFrom.HasValue && x.YearTo.HasValue);
 
         RuleFor(x => x.SortBy)
-            .IsEnumName(typeof(SortByMeteoriteEnum), caseSensitive: false)
+            .IsEnumName(typeof(SortByMeteoriteEnum), false)
             .When(x => !string.IsNullOrEmpty(x.SortBy));
+
+        RuleFor(x => x.SortDirection)
+            .IsEnumName(typeof(SortDirectionEnum), false)
+            .When(x => !string.IsNullOrEmpty(x.SortDirection));
+
+        RuleFor(x => x.SortBy)
+            .NotEmpty()
+            .When(x => !string.IsNullOrEmpty(x.SortDirection))
+            .WithMessage("SortBy must be provided when SortDirection is specified.");
+
+        RuleFor(x => x.SortDirection)
+            .NotEmpty()
+            .When(x => !string.IsNullOrEmpty(x.SortBy))
+            .WithMessage("SortDirection must be provided when SortBy is specified.");
     }
 }
