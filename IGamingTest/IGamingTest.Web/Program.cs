@@ -22,6 +22,8 @@ var app = await AppBuilder.New(activator)
     .With<VersioningStartup>()
     .With<WebApiStartup>()
 
+    .With<CorsStartup>()
+
     .BuildAsync(builder);
 
 await app.RunAsync();
