@@ -1,4 +1,4 @@
-﻿namespace ShuttleX.Http.In;
+﻿namespace IGamingTest.Core.Http.In;
 
 public static class Bootstrap
 {

@@ -2,7 +2,7 @@
 using IGamingTest.Core.Exceptions;
 using static Microsoft.AspNetCore.Http.StatusCodes;
 
-namespace ShuttleX.Http.Exceptions;
+namespace IGamingTest.Core.Http.Exceptions;
 
 [HttpResponseStatusCode(Status401Unauthorized)]
 public class UnauthorizedRqException(

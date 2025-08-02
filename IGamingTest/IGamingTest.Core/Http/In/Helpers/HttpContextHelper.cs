@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using Microsoft.AspNetCore.Http;
 
-namespace ShuttleX.Http.In.Helpers;
+namespace IGamingTest.Core.Http.In.Helpers;
 
 public static class HttpContextHelper
 {

@@ -1,5 +1,5 @@
-﻿using IGamingTest.Core.Http.Out;
-using ShuttleX.Http.In;
+﻿using IGamingTest.Core.Http.In;
+using IGamingTest.Core.Http.Out;
 
 namespace IGamingTest.Core.Http;
 

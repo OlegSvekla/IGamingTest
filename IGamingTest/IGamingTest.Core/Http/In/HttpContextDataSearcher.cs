@@ -3,7 +3,7 @@ using IGamingTest.Infrastructure.Ef.Helpers;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 
-namespace ShuttleX.Http.In;
+namespace IGamingTest.Core.Http.In;
 
 public interface IHttpContextDataSearcher
 {

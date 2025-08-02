@@ -1,4 +1,4 @@
-﻿namespace ShuttleX.Http.Exceptions;
+﻿namespace IGamingTest.Core.Http.Exceptions;
 
 /// <summary>
 /// Exception codes. Min: 10 000 Max: 19 999
