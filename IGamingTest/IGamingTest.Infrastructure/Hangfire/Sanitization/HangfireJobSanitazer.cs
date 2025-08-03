@@ -18,7 +18,7 @@ public sealed class HangfireJobSanitazer : IJobSanitazer
 
         using var connection = JobStorage.Current.GetConnection();
         var recurringJobs = connection.GetRecurringJobs();
-        recurringJobs.ForEach(x => RecurringJob.RemoveIfExists(x.Id));
+        //recurringJobs.ForEach(x => RecurringJob.RemoveIfExists(x.Id));
 
         return ValueTask.CompletedTask;
     }

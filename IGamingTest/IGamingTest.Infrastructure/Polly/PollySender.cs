@@ -1,10 +1,10 @@
 ﻿using IGamingTest.Core.Http.Out;
 using IGamingTest.Core.Http.Out.Mappers;
 using IGamingTest.Core.Http.Out.Models;
-using IGamingTest.Core.Polly.Clients;
 using IGamingTest.Core.Polly.Exceptions;
+using IGamingTest.Infrastructure.Polly.Clients;
 
-namespace IGamingTest.Core.Http.Polly;
+namespace IGamingTest.Infrastructure.Http.Polly;
 
 public class PollySender(
     IPollyClient pollyClient,

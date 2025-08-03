@@ -2,7 +2,7 @@
 using Polly;
 using System.Threading.RateLimiting;
 
-namespace IGamingTest.Core.Polly.Clients.Policies;
+namespace IGamingTest.Infrastructure.Polly.Clients.Policies;
 
 public interface IHttpRateLimiterPolicy : IPolicySetup;
 

@@ -1,10 +1,10 @@
 ﻿using IGamingTest.Core.Http.Out.Helpers;
-using IGamingTest.Core.Polly.Clients.Loggers;
-using IGamingTest.Core.Polly.Clients.Policies;
+using IGamingTest.Infrastructure.Polly.Clients.Loggers;
+using IGamingTest.Infrastructure.Polly.Clients.Policies;
 using Microsoft.Extensions.Logging;
 using Polly;
 
-namespace IGamingTest.Core.Polly.Clients;
+namespace IGamingTest.Infrastructure.Polly.Clients;
 
 public interface IPollyClient
 {

@@ -1,4 +1,4 @@
-﻿namespace IGamingTest.Core.Polly.Configs;
+﻿namespace IGamingTest.Infrastructure.Polly.Configs;
 
 public class RetryConfig
 {

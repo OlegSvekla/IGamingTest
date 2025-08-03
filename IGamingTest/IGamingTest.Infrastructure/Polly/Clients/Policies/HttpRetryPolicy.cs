@@ -5,7 +5,7 @@ using Polly.Retry;
 using Polly.Timeout;
 using System.Net;
 
-namespace IGamingTest.Core.Polly.Clients.Policies;
+namespace IGamingTest.Infrastructure.Polly.Clients.Policies;
 
 public interface IHttpRetryPolicy : IPolicySetup;
 

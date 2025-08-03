@@ -1,11 +1,12 @@
 ﻿using IGamingTest.Core.Http.Out;
-using IGamingTest.Core.Polly.Clients;
-using IGamingTest.Core.Polly.Clients.Policies;
-using IGamingTest.Core.Polly.Configs;
 using IGamingTest.Core.Polly.Providers;
+using IGamingTest.Infrastructure.Polly.Clients;
+using IGamingTest.Infrastructure.Polly.Clients.Policies;
+using IGamingTest.Infrastructure.Polly.Configs;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace IGamingTest.Core.Http.Polly;
+namespace IGamingTest.Infrastructure.Http.Polly;
 
 public static class Bootstrap
 {

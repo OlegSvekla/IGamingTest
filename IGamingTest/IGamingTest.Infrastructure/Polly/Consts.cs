@@ -1,4 +1,4 @@
-﻿namespace IGamingTest.Core.Http.Polly;
+﻿namespace IGamingTest.Infrastructure.Http.Polly;
 
 public static class Consts
 {

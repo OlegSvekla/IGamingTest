@@ -1,4 +1,4 @@
-﻿namespace IGamingTest.Core.Polly.Exceptions;
+﻿namespace IGamingTest.Infrastructure.Polly.Exceptions;
 
 /// <summary>
 /// Exception codes. Min: 10 000 Max: 19 999

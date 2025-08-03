@@ -1,4 +1,4 @@
-﻿namespace IGamingTest.Core.Polly.Clients;
+﻿namespace IGamingTest.Infrastructure.Polly.Clients;
 
 public enum PipelineOrderEnum
 {

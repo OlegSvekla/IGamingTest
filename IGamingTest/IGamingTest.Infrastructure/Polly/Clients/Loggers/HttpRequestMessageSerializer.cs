@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.Text;
 
-namespace IGamingTest.Core.Polly.Clients.Loggers;
+namespace IGamingTest.Infrastructure.Polly.Clients.Loggers;
 
 public class HttpRequestMessageSerializeHelper
 {

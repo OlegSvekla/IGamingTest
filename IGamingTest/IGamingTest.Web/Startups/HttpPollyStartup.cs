@@ -1,4 +1,4 @@
-﻿using IGamingTest.Core.Http.Polly;
+﻿using IGamingTest.Infrastructure.Http.Polly;
 using IGamingTest.Core.Startups;
 
 namespace IGamingTest.Web.Startups;

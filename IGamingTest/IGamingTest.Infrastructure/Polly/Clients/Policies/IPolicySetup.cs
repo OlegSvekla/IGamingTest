@@ -1,6 +1,6 @@
 ﻿using Polly;
 
-namespace IGamingTest.Core.Polly.Clients.Policies;
+namespace IGamingTest.Infrastructure.Polly.Clients.Policies;
 
 public interface IPolicySetup
 {

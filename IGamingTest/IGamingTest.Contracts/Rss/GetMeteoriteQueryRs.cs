@@ -1,24 +1,57 @@
 ﻿using IGamingTest.Core.Entities.Common;
 using Newtonsoft.Json;
+using System.Globalization;
 
 namespace IGamingTest.Core.Models;
 
 public class GetMeteoriteQueryRs
 {
+    [JsonProperty("id")]
     public string Id { get; set; } = default!;
 
+    [JsonProperty("name")]
     public string? Name { get; set; }
+
+    [JsonProperty("nametype")]
     public string? NameType { get; set; }
+
+    [JsonProperty("recclass")]
     public string? RecClass { get; set; }
+
+    [JsonProperty("mass")]
     public string? Mass { get; private set; }
+
+    [JsonProperty("fall")]
     public string? Fall { get; set; }
+
+    [JsonProperty("year")]
     public string? Year { get; private set; }
+
+    [JsonProperty("reclat")]
     public string? RecLat { get; set; }
+
+    [JsonProperty("reclong")]
     public string? RecLong { get; set; }
+
+    [JsonProperty("geolocation")]
     public GeoLocationDto? Geolocation { get; set; }
 
     [JsonIgnore]
-    public double MassValue => double.TryParse(Mass, out var m) ? m : 0;
+    public double MassValue
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Mass))
+                return 0;
+
+            var normalized = Mass.Replace(",", ".");
+
+            if (double.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out var value))
+                return value;
+
+            return 0;
+        }
+    }
 
     [JsonIgnore]
     public int YearValue
@@ -31,7 +64,8 @@ public class GetMeteoriteQueryRs
             if (DateTime.TryParse(Year, out var dt))
                 return dt.Year;
 
-            return 0;
+            var digits = new string(Year.TakeWhile(char.IsDigit).ToArray());
+            return int.TryParse(digits, out var y) ? y : 0;
         }
     }
 

@@ -1,4 +1,5 @@
 ﻿using IGamingTest.Core.Exceptions;
+using IGamingTest.Infrastructure.Polly.Exceptions;
 
 namespace IGamingTest.Core.Polly.Exceptions;
 

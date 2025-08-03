@@ -1,4 +1,4 @@
-﻿using IGamingTest.Core.Polly.Configs;
+﻿using IGamingTest.Infrastructure.Polly.Configs;
 using Microsoft.Extensions.Options;
 
 namespace IGamingTest.Core.Polly.Providers;

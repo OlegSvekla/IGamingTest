@@ -191,14 +191,13 @@ public class MeteoriteService(
         IReadOnlyCollection<GetMeteoriteQueryRs> dtos,
         CancellationToken ct)
     {
-        const int batchSize = 20;
         var result = new List<MeteoriteEntity>();
 
         var allDtos = meteoritesById.Values.ToList();
 
-        for (int i = 0; i < allDtos.Count; i += batchSize)
+        for (int i = 0; i < allDtos.Count; i += Consts.BatchSize)
         {
-            var batchDtos = allDtos.Skip(i).Take(batchSize).ToList();
+            var batchDtos = allDtos.Skip(i).Take(Consts.BatchSize).ToList();
 
             var predicate = PredicateBuilder.False<MeteoriteEntity>();
 
@@ -258,7 +257,6 @@ public class MeteoriteService(
 
         return result;
     }
-
 
     private List<MeteoriteEntity> MapDtosToEntities(IReadOnlyCollection<GetMeteoriteQueryRs> dtos)
     {
