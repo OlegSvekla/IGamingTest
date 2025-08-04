@@ -1,4 +1,4 @@
-﻿namespace IRLIX.Mq;
+﻿namespace IGamingTest.Core.Mq;
 
 public enum CqrsType
 {
