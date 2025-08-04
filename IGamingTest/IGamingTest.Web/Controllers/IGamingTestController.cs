@@ -27,7 +27,7 @@ public class IGamingTestController(
 {
     [HttpPost("meteorites")]
     [ProducesResponseType(Status200OK, Type = typeof(IReadOnlyCollection<GetMeteoriteFilterRs>))]
-    public async Task<IActionResult> GetEventsAsync(
+    public async Task<IActionResult> GetMeteoritesAsync(
         [FromBody] GetMeteoriteFilterRq rq,
         CancellationToken ct)
     {
