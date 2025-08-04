@@ -2,7 +2,7 @@
 using IGamingTest.Core.Models;
 using IGamingTest.Web.Rss;
 
-namespace IGamingTest.Web.Mappers.ToQuery;
+namespace IGamingTest.Web.Mappers.ToRs;
 
 public class MeteoriteFilterQueryRsToRsMapper
 : IMapper<IReadOnlyCollection<GetMeteoriteFilterQueryRs>, IReadOnlyCollection<GetMeteoriteFilterRs>>
