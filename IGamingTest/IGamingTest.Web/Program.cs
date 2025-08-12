@@ -23,6 +23,7 @@ var app = await AppBuilder.New(activator)
     .With<WebApiStartup>()
 
     .With<CorsStartup>()
+    .With<UrlStartup>()
 
     .BuildAsync(builder);
 

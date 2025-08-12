@@ -4,8 +4,10 @@ using IGamingTest.Core.Helpers;
 using IGamingTest.Core.Http.Out;
 using IGamingTest.Core.Http.Out.Models;
 using IGamingTest.Core.Models;
+using IGamingTest.Core.Urls.Providers;
 using IGamingTest.Infrastructure.Ef.Repositories.Interfaces;
 using Microsoft.Extensions.Logging;
+using System.Linq.Expressions;
 
 namespace IGamingTest.BL.Services;
 
@@ -16,6 +18,7 @@ public interface IMeteoriteService
 
 public class MeteoriteService(
     IHttpSender httpSender,
+    IUrlProvider urlProvider,
     ILogger<MeteoriteService> logger,
     IUow uow
     ) : IMeteoriteService
@@ -50,7 +53,7 @@ public class MeteoriteService(
         try
         {
             var method = HttpMethod.Get;
-            var uri = new Uri($"https://raw.githubusercontent.com/biggiko/nasa-dataset/refs/heads/main/y77d-th95.json");
+            var uri = new Uri($"{urlProvider.GetConfigInfo().MeteoritesUrl}");
 
             var rq = new HttpRq(
             Uri: uri,
@@ -199,41 +202,7 @@ public class MeteoriteService(
         {
             var batchDtos = allDtos.Skip(i).Take(Consts.BatchSize).ToList();
 
-            var predicate = PredicateBuilder.False<MeteoriteEntity>();
-
-            foreach (var dto in batchDtos)
-            {
-                var id = dto.IdValue;
-                var nameType = dto.NameType;
-                var recClass = dto.RecClass;
-                var mass = dto.MassValue;
-                var fall = dto.Fall;
-                var year = dto.YearValue;
-                var recLat = dto.RecLat;
-                var recLong = dto.RecLong;
-
-                var geoLat = dto.Geolocation?.Geo?.Latitude;
-                var geoLong = dto.Geolocation?.Geo?.Longitude;
-
-                predicate = predicate.Or(x =>
-                    x.Id == id &&
-                    (
-                        x.NameType != nameType ||
-                        x.RecClass != recClass ||
-                        x.Mass != mass ||
-                        x.Fall != fall ||
-                        x.Year != year ||
-                        x.RecLat != recLat ||
-                        x.RecLong != recLong ||
-                        (x.Geolocation != null &&
-                         x.Geolocation.Geo != null &&
-                         (
-                             x.Geolocation.Geo.Latitude != geoLat ||
-                             x.Geolocation.Geo.Longitude != geoLong
-                         ))
-                    )
-                );
-            }
+            var predicate = BuildBatchPredicate(batchDtos);
 
             var batchEntities = await uow.MeteoriteRepository.GetAllAsync(
                 selector: x => new MeteoriteEntity
@@ -256,6 +225,49 @@ public class MeteoriteService(
         }
 
         return result;
+    }
+
+    private Expression<Func<MeteoriteEntity, bool>> BuildBatchPredicate(IEnumerable<GetMeteoriteQueryRs> dtos)
+    {
+        var predicate = PredicateBuilder.False<MeteoriteEntity>();
+
+        foreach (var dto in dtos)
+            predicate = predicate.Or(BuildPredicateForDto(dto));
+
+        return predicate;
+    }
+
+    private Expression<Func<MeteoriteEntity, bool>> BuildPredicateForDto(GetMeteoriteQueryRs dto)
+    {
+        var id = dto.IdValue;
+        var nameType = dto.NameType;
+        var recClass = dto.RecClass;
+        var mass = dto.MassValue;
+        var fall = dto.Fall;
+        var year = dto.YearValue;
+        var recLat = dto.RecLat;
+        var recLong = dto.RecLong;
+
+        var geoLat = dto.Geolocation?.Geo?.Latitude;
+        var geoLong = dto.Geolocation?.Geo?.Longitude;
+
+        return x =>
+            x.Id == id &&
+            (
+                x.NameType != nameType ||
+                x.RecClass != recClass ||
+                x.Mass != mass ||
+                x.Fall != fall ||
+                x.Year != year ||
+                x.RecLat != recLat ||
+                x.RecLong != recLong ||
+                (x.Geolocation != null &&
+                 x.Geolocation.Geo != null &&
+                 (
+                     x.Geolocation.Geo.Latitude != geoLat ||
+                     x.Geolocation.Geo.Longitude != geoLong
+                 ))
+            );
     }
 
     private List<MeteoriteEntity> MapDtosToEntities(IReadOnlyCollection<GetMeteoriteQueryRs> dtos)
